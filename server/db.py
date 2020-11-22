@@ -8,6 +8,7 @@ class DB(object):
 
     def __init__(self):
         self.conn = connect(host=DB_HOST, database=DB_NAME, port=DB_PORT,user=DB_USER,password=DB_PWD)
+        print('database connection', self.conn.open)
         self.cursor = self.conn.cursor()
 
     def close(self):

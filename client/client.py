@@ -43,7 +43,7 @@ class Client(object):
     def startup(self):
         # server_ip = input('server ip: ')
         # print(len(server_ip))
-        server_ip = '127.0.0.1'
+        server_ip = '192.168.1.150'
         self.conn.connect(server_ip)
         thread = Thread(target=self.response_handler)
         thread.daemon = True
@@ -105,7 +105,8 @@ class Client(object):
         print('receive chat result: ', response_data)
         sender = response_data['username']
         msg = response_data['msg']
-        self.window_chat.append_msg(sender, msg)
+        send_time = response_data['send_time']
+        self.window_chat.append_msg(sender, msg, send_time)
 
 
     def exit(self):

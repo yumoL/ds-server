@@ -6,8 +6,9 @@ from response_protocol import *
 import json
 from db import DB
 import redis
-from utils import get_ntp_time
-
+from utils import get_current_time
+import sys
+from time import sleep
 
 class Server(object):
 
@@ -37,15 +38,27 @@ class Server(object):
 
     def startup(self):
         """accept connection from client"""
-        while True:
-            print('waiting connection from client...')
-            soc, addr = self.server_socket.accept()
-            print('Accepted connection from client')
+        try:
+            pub_condition_thread = Thread(target=self.pub_condition)
+            sub_thread = Thread(target=self.sub_and_redirect)
+            pub_condition_thread.daemon = True
+            sub_thread.daemon = True
+            pub_condition_thread.start()
+            sub_thread.start()
 
-            client_soc = SocketWrapper(soc)
+            while True:  
+                print('waiting connection from client...')
+                soc, addr = self.server_socket.accept()
+                print('Accepted connection from client')
 
-            Thread(target=lambda: self.request_handler(client_soc)).start()
-            Thread(target=lambda: self.sub_and_redirect()).start()
+                client_soc = SocketWrapper(soc)
+
+                req_handler_thread = Thread(target=self.request_handler,args=(client_soc,))
+                req_handler_thread.daemon = True
+                req_handler_thread.start()
+                
+        except KeyboardInterrupt:
+            sys.exit(0)
 
     def request_handler(self, client_soc):
         """handle client requests"""
@@ -69,9 +82,7 @@ class Server(object):
         print('user left')
         for username, info in self.clients.items():
             if info['soc'] == client_soc:
-                # print(self.clients)
                 del self.clients[username]
-                # print(self.clients)
                 break
 
     def request_login_handler(self, client_soc, req_data):
@@ -119,7 +130,7 @@ class Server(object):
         msg = req_data['msg']
 
         # pub to redis
-        ntp_time = get_ntp_time()
+        ntp_time = get_current_time()
         pub_msg = {'user_id': self.clients[username]['user_id'],
                    "username": username, "msg": msg, 'ntp_time': ntp_time}
         self.publisher.publish(CHANNEL, json.dumps(pub_msg))
@@ -144,7 +155,14 @@ class Server(object):
                     username, msg, send_time)
                 for u_name, info in self.clients.items():
                     info['soc'].send_data(response_text)
-
+    
+    #pub aliveness condition to redis
+    def pub_condition(self):
+        while True:
+            condition = {'ip': SERVER_IP, 'clients': len(self.clients)}
+            print(condition)
+            self.publisher.publish(ALIVE_CHANNEL, json.dumps(condition))
+            sleep(WAIT)
 
 if __name__ == '__main__':
     Server().startup()

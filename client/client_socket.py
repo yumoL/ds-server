@@ -7,11 +7,11 @@ class ClientSocket(socket.socket):
     def __init__(self):
         super(ClientSocket, self).__init__(socket.AF_INET, socket.SOCK_STREAM)
 
-    def connect(self, server_ip):
+    def connect(self, server_ip, server_port=SERVER_PORT):
         """
         connect server
         """
-        super(ClientSocket, self).connect((server_ip, SERVER_PORT))
+        super(ClientSocket, self).connect((server_ip, server_port))
 
     def recv_data(self):
         """

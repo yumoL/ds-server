@@ -66,8 +66,8 @@ class WindowLogin(Tk):
 
         button_frame.grid(row=2, columnspan=2, pady=5)
 
-    def get_server_ip(self):
-        return self.children['ip_entry'].get()
+    # def get_server_ip(self):
+    #     return self.children['ip_entry'].get()
 
 
     def get_username(self):

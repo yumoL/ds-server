@@ -74,7 +74,14 @@ class Coordinator:
                 client_soc.send_data(response_text)
 
     def ip_with_least_clients(self, invalid_ip):
+        """
+        return ip of the server that has the least clients
+        """
         if invalid_ip != '' and invalid_ip in self.beat_dict:
+            """
+            remove the invalid chat server ip immediately if the client asks for reconnection 
+            by reporting an invalid ip
+            """
             print('remove invalid ' + invalid_ip)
             del self.beat_dict[invalid_ip]
         return list(self.beat_dict)[0]

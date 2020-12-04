@@ -6,7 +6,7 @@ start_time = sys.argv[1]
 timeArray = time.strptime(start_time, "%Y-%m-%d %H:%M:%S")
 start = int(time.mktime(timeArray))
 
-#back up time lag: 300 (s)
+#back up time lag: 100 (s)
 backup_timelag = 100
 
 while True:

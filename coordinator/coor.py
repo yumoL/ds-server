@@ -8,6 +8,7 @@ import sys
 from coor_socket import CoorSocket
 from socket_wrapper import SocketWrapper
 from response_protocol import ResponseProtocol
+from log import Log
 
 
 class Coordinator:
@@ -24,6 +25,9 @@ class Coordinator:
 
         self.working_redis = True #is connected to redis
 
+        self.log = Log('coordinator.log')
+        self.log.write_log('f','INFO','Start logging')
+
     def startup(self):
         try:
             update_thread = Thread(target=self.update)
@@ -36,7 +40,10 @@ class Coordinator:
             while True:
                 print('waiting connection from client...')
                 soc, addr = self.coor_socket.accept()
-                print('Accepted connection from client')
+                self.log.log_c_and_f('DEBUG', f'Accepted connection from {addr}')
+               
+                # print('Accepted connection from client')
+                # print(addr)
 
                 client_soc = SocketWrapper(soc)
                 ip_thread = Thread(
@@ -45,6 +52,7 @@ class Coordinator:
                 ip_thread.start()
 
         except KeyboardInterrupt:
+            self.log.log_c_and_f('DEBUG', 'server existed')
             sys.exit(0)
 
     def send_valid_ip(self, client_soc):
@@ -73,22 +81,24 @@ class Coordinator:
                 response_text = ResponseProtocol.response_ip(server_ip)
                 print('response')
                 print(response_text)
+                self.log.log_c_and_f('DEBUG', f'send chat server ip {server_ip}')
                 client_soc.send_data(response_text)
 
     def ip_with_least_clients(self, invalid_ip):
         """
         return ip of the server that has the least clients
         """
-        if len(self.beat_dict) == 0:
-            return 'no available chat server'
-
         if invalid_ip != '' and invalid_ip in self.beat_dict:
             """
             remove the invalid chat server ip immediately if the client asks for reconnection 
             by reporting an invalid ip
             """
-            print('remove invalid ' + invalid_ip)
             del self.beat_dict[invalid_ip]
+            self.log.log_c_and_f('ERROR', f'remove invalid ip {invalid_ip}')
+
+        if len(self.beat_dict) == 0:
+            return 'no available chat server'
+            
         return list(self.beat_dict)[0]
         
 
@@ -98,23 +108,25 @@ class Coordinator:
         """
         while True:
             try:
+                self.log.log_c_and_f('DEBUG', f'listening on {ALIVE_CHANNEL}')
                 for item in self.pubsub.listen():
                     if type(item['data']) == int:
                         continue
                     else:
                         data_json = str(item["data"], encoding='utf-8')
                         data = json.loads(data_json)
-                        print('heartbeat', data)
+                        self.log.write_log('f', 'DEBUG', f'received heartbeat: {data}')
                         server_ip = data['ip']
                         clients = data['clients']
                         self.beat_dict[server_ip] = {
                             'checked': time(), 'clients': clients}
             except redis.ConnectionError:
-                print('no response from redis server')
+                self.log.log_c_and_f('ERROR','no response from redis server')
                 self.working_redis = False
                  # try to resubcribe the channel after reconnection
                 while True:
                     try:
+                        self.log.log_c_and_f('DEBUG','try to reconnect to redis')
                         self.redis.ping()
                     except redis.ConnectionError:
                         print('not yet...')
@@ -124,7 +136,7 @@ class Coordinator:
                         self.pubsub = self.redis.pubsub()
                         self.pubsub.subscribe([ALIVE_CHANNEL])
                         self.working_redis = True
-                        print('resubscribe...')
+                        self.log.log_c_and_f('DEBUG','reconnected to redis and re-subscribed the heartbeat channel')
                         print('channels', self.redis.pubsub_channels())
                         break
            
@@ -145,12 +157,12 @@ class Coordinator:
             for ip in copy.keys():
                 if copy[ip]['checked'] < when:
                     if self.beat_dict.get(ip) != None:
-                        print('remove ' + ip)
+                        self.log.log_c_and_f('ERROR', f'remove invalid ip {ip}')
                         del self.beat_dict[ip]
             
             # sort dict by the number of clients
             self.beat_dict = dict(sorted(self.beat_dict.items(), key=lambda item: item[1]['clients']))
-            print('dict', self.beat_dict)
+            self.log.log_c_and_f('DEBUG', f'valid chat servers {self.beat_dict}')
             sleep(CHECK_WAIT)
 
 

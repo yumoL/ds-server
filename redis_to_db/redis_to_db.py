@@ -3,6 +3,9 @@ import redis
 import json
 from config import *
 from time import sleep
+from log import Log
+
+log = Log('dump.log')
 
 pool = redis.ConnectionPool(host=REDIS_HOST, port=REDIS_PORT)
 ps = redis.Redis(connection_pool=pool)
@@ -17,7 +20,7 @@ cur = conn.cursor()
 while True:
     try:
         for item in p_s.listen():
-            print("dumping data to mysql...")
+            log.log_c_and_f('DEBUG', 'dumping data to mysql...')
             if type(item["data"]) == int:
                 continue
             else:
@@ -35,20 +38,20 @@ while True:
                 cur.execute(insert_sqli)
                 conn.commit()
     except redis.ConnectionError:
-        print('could not connect to redis')
+        log.log_c_and_f('ERROR', 'could not connect to redis')
 
         # try to resubcribe the channel after reconnection
         while True:
             try:
+                log.log_c_and_f('DEBUG', 'try to reconnect to redis')
                 ps.ping()
             except redis.ConnectionError:
                 print('not yet...')
                 sleep(RECONNECT_REDIS_WAIT)
             else:
-                #self.redis = redis.Redis(connection_pool=self.pool,socket_keepalive=True)
                 p_s = ps.pubsub()
                 p_s.subscribe([CHANNEL])
-                print('resubscribe...')
+                log.log_c_and_f('DEBUG','reconnected to redis and re-subscribed the heartbeat channel')
                 print('channels', ps.pubsub_channels())
                 break
 

@@ -9,6 +9,7 @@ import redis
 from utils import get_current_time
 import sys
 from time import sleep
+from log import Log
 
 class Server(object):
 
@@ -32,6 +33,9 @@ class Server(object):
         self.pubsub = self.redis.pubsub()
         self.pubsub.subscribe([CHANNEL])
 
+        self.log = Log('server.log')
+        self.log.log_c_and_f('INFO', 'start logging')
+
     def register(self, req_id, handler):
         # for each req type, register handler for it a dictionary
         self.req_handler_functions[req_id] = handler
@@ -49,7 +53,7 @@ class Server(object):
             while True:  
                 print('waiting connection from client...')
                 soc, addr = self.server_socket.accept()
-                print('Accepted connection from client')
+                self.log.log_c_and_f('DBEUG', f'Accepted connection from client {addr}')
 
                 client_soc = SocketWrapper(soc)
 
@@ -80,14 +84,15 @@ class Server(object):
                 handler_function(client_soc, recv_data)
 
     def remove_offline_user(self, client_soc):
-        print('user left')
+        
         for username, info in self.clients.items():
             if info['soc'] == client_soc:
+                self.log.log_c_and_f('DEBUG', f'user {username} left')
                 del self.clients[username]
                 break
 
     def request_login_handler(self, client_soc, req_data):
-        print('received longin req, processing')
+        self.log.log_c_and_f('DEBUG', 'processing login request')
 
         # obtain username and pwd
         username = req_data['username']
@@ -98,9 +103,8 @@ class Server(object):
 
         # existing user=>save user info
         if result == '1':
-            print('client soc')
-            print(client_soc)
             self.clients[username] = {'user_id': user_id, 'soc': client_soc}
+            self.log.log_c_and_f('DEBUG', f'Accepted login request from {username}')
 
         # generate response
         response_text = ResponseProtocol.response_login(result, username)
@@ -135,10 +139,11 @@ class Server(object):
         pub_msg = {'user_id': self.clients[username]['user_id'],
                    "username": username, "msg": msg, 'ntp_time': ntp_time}
         try:
-            recvd = self.redis.publish(CHANNEL, json.dumps(pub_msg))
-            print('recvd', recvd)
+            self.redis.publish(CHANNEL, json.dumps(pub_msg))
+            self.log.log_c_and_f('DEBUG', f'publish {msg} from {username} to {CHANNEL}')
+
         except redis.ConnectionError:
-            print('error when publishing messages, could not connect to redis')
+            self.log.log_c_and_f('ERROR','error when publishing messages, could not connect to redis')
             self.send_error_msg_to_clients()
 
     def sub_and_redirect(self):
@@ -147,8 +152,8 @@ class Server(object):
         """
         while True:
             try:
+                self.log.log_c_and_f('DEBUG', f'listening on {CHANNEL}')
                 for item in self.pubsub.listen():         
-                    print('data',item['data'])
                     if type(item["data"]) == int:
                         continue
                     else:
@@ -163,14 +168,16 @@ class Server(object):
                         response_text = ResponseProtocol.response_chat(
                             username, msg, send_time)
                         for u_name, info in self.clients.items():
+                            self.log.log_c_and_f('DEBUG', f'redirect {msg} to {u_name}')
                             info['soc'].send_data(response_text)
             except redis.ConnectionError:
-                print('error when subcribing, could not connect to redis')
+                self.log.log_c_and_f('ERROR', 'error when subcribing, could not connect to redis')
                 self.send_error_msg_to_clients()
 
                 # try to resubcribe the channel after reconnection
                 while True:
                     try:
+                        self.log.log_c_and_f('DEBUG', 'try to reconnect to redis')
                         self.redis.ping()
                     except redis.ConnectionError:
                         print('not yet...')
@@ -179,7 +186,7 @@ class Server(object):
                         #self.redis = redis.Redis(connection_pool=self.pool,socket_keepalive=True)
                         self.pubsub = self.redis.pubsub()
                         self.pubsub.subscribe([CHANNEL])
-                        print('resubscribe...')
+                        self.log.log_c_and_f('DEBUG','reconnected to redis and re-subscribed the heartbeat channel')
                         print('channels', self.redis.pubsub_channels())
                         break
                 
@@ -193,12 +200,12 @@ class Server(object):
             try:
                 while True:
                     condition = {'ip': SERVER_IP, 'clients': len(self.clients)}   
-                    print(condition)       
+                    self.log.write_log('f', 'DEBUG', f'publish heartbeat {condition}')       
                     self.redis.publish(ALIVE_CHANNEL, json.dumps(condition))
                     sleep(WAIT)
             except redis.ConnectionError:
-                print('error when publishing heartbeat, could not connect to redis')
-                sleep(10)
+                self.log.log_c_and_f('ERROR', 'error when publishing heartbeat, could not connect to redis')
+                sleep(RECONNECT_REDIS_WAIT)
 
 
 

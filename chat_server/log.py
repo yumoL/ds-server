@@ -2,13 +2,13 @@ import logging
 class Log:
     def __init__(self,filename,level="INFO"):
         self.filename = filename
-        self.level = level                   #设置log级别
-        self.logger = logging.getLogger()    #得到logger实体
-        self.logger.setLevel(logging.DEBUG)  #设置日志最低输出级别默认为WARN
-        self.formatter=logging.Formatter("[%(asctime)s] - %(levelname)s : %(message)s")#设置日志格式
+        self.level = level                   #set log level
+        self.logger = logging.getLogger()    
+        self.logger.setLevel(logging.DEBUG)  #set debug as the lowest logging level
+        self.formatter=logging.Formatter("[%(asctime)s] - %(levelname)s : %(message)s")#logging format
  
     def __createFileHandler(self):
-        #创建FileHandler,日志输入到文件
+        #logging to file
         fh=logging.FileHandler(self.filename,'a')
         fh.setLevel(logging.DEBUG)
         fh.setFormatter(self.formatter)
@@ -16,7 +16,7 @@ class Log:
         return fh
     
     def __createStreamHandler(self):
-        # 创建StreamHandler,日志输入到控制台
+        #logging to console
         ch = logging.StreamHandler()
         ch.setLevel(logging.DEBUG)
         ch.setFormatter(self.formatter)
@@ -43,9 +43,13 @@ class Log:
         self.__console(msg)
         self.logger.removeHandler(handler)
 
+    def log_c_and_f(self, level, msg):
+        self.write_log('f', level, msg)
+        self.write_log('c', level, msg)
+        
 # some examples of an instance using the class
-logcase = Log('test.log')
-logcase.write_log('f','WARN','Today is gonna be a bad day!')
-logcase.write_log('c','WARN','Today is gonna be a bad day!')
-logcase.write_log('c','INFO','Today is gonna be a good day!')
-logcase.write_log('f','INFO','Today is gonna be a good day!')
+# logcase = Log('test.log')
+# logcase.write_log('f','WARN','Today is gonna be a bad day!')
+# logcase.write_log('c','WARN','Today is gonna be a bad day!')
+# logcase.write_log('c','INFO','Today is gonna be a good day!')
+# logcase.write_log('f','INFO','Today is gonna be a good day!')

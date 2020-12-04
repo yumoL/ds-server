@@ -10,3 +10,4 @@ DB_PWD = 'password'
 REDIS_HOST = '192.168.1.164'
 REDIS_PORT = 6379
 CHANNEL = 'chat'
+RECONNECT_REDIS_WAIT = 3 #try to reconnect to redis every 3s

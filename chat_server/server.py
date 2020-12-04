@@ -27,10 +27,10 @@ class Server(object):
         self.db = DB()
 
         # init redis
-        pool = redis.ConnectionPool(host=REDIS_HOST, port=REDIS_PORT)
-        self.publisher = redis.Redis(connection_pool=pool)
-        self.subscriber = self.publisher.pubsub()
-        self.subscriber.subscribe([CHANNEL])
+        self.pool = redis.ConnectionPool(host=REDIS_HOST, port=REDIS_PORT)
+        self.redis = redis.Redis(connection_pool=self.pool,socket_keepalive=True)
+        self.pubsub = self.redis.pubsub()
+        self.pubsub.subscribe([CHANNEL])
 
     def register(self, req_id, handler):
         # for each req type, register handler for it a dictionary
@@ -59,6 +59,7 @@ class Server(object):
                 
         except KeyboardInterrupt:
             sys.exit(0)
+
 
     def request_handler(self, client_soc):
         """handle client requests"""
@@ -133,36 +134,83 @@ class Server(object):
         ntp_time = get_current_time()
         pub_msg = {'user_id': self.clients[username]['user_id'],
                    "username": username, "msg": msg, 'ntp_time': ntp_time}
-        self.publisher.publish(CHANNEL, json.dumps(pub_msg))
+        try:
+            recvd = self.redis.publish(CHANNEL, json.dumps(pub_msg))
+            print('recvd', recvd)
+        except redis.ConnectionError:
+            print('error when publishing messages, could not connect to redis')
+            self.send_error_msg_to_clients()
 
     def sub_and_redirect(self):
         """
         subscribe messages from redis and redirect them to clients
         """
-        for item in self.subscriber.listen():
-            if type(item["data"]) == int:
-                continue
-            else:
-                data_json = str(item["data"], encoding='utf-8')
-                data = json.loads(data_json)
-                print('subscribed message')
-                print(data)
-                username = data['username']
-                msg = data['msg']
-                send_time = data['ntp_time']
-
-                response_text = ResponseProtocol.response_chat(
-                    username, msg, send_time)
-                for u_name, info in self.clients.items():
-                    info['soc'].send_data(response_text)
-    
-    #pub aliveness condition to redis
-    def pub_condition(self):
         while True:
-            condition = {'ip': SERVER_IP, 'clients': len(self.clients)}
-            print(condition)
-            self.publisher.publish(ALIVE_CHANNEL, json.dumps(condition))
-            sleep(WAIT)
+            try:
+                for item in self.pubsub.listen():         
+                    print('data',item['data'])
+                    if type(item["data"]) == int:
+                        continue
+                    else:
+                        data_json = str(item["data"], encoding='utf-8')
+                        data = json.loads(data_json)
+                        print('subscribed message')
+                        print(data)
+                        username = data['username']
+                        msg = data['msg']
+                        send_time = data['ntp_time']
+
+                        response_text = ResponseProtocol.response_chat(
+                            username, msg, send_time)
+                        for u_name, info in self.clients.items():
+                            info['soc'].send_data(response_text)
+            except redis.ConnectionError:
+                print('error when subcribing, could not connect to redis')
+                self.send_error_msg_to_clients()
+
+                # try to resubcribe the channel after reconnection
+                while True:
+                    try:
+                        self.redis.ping()
+                    except redis.ConnectionError:
+                        print('not yet...')
+                        sleep(RECONNECT_REDIS_WAIT)
+                    else:
+                        #self.redis = redis.Redis(connection_pool=self.pool,socket_keepalive=True)
+                        self.pubsub = self.redis.pubsub()
+                        self.pubsub.subscribe([CHANNEL])
+                        print('resubscribe...')
+                        print('channels', self.redis.pubsub_channels())
+                        break
+                
+    
+
+    def pub_condition(self):
+        """
+        publish heartbeat and the number of clients to redis
+        """
+        while True:
+            try:
+                while True:
+                    condition = {'ip': SERVER_IP, 'clients': len(self.clients)}   
+                    print(condition)       
+                    self.redis.publish(ALIVE_CHANNEL, json.dumps(condition))
+                    sleep(WAIT)
+            except redis.ConnectionError:
+                print('error when publishing heartbeat, could not connect to redis')
+                sleep(10)
+
+
+
+    def send_error_msg_to_clients(self):
+        error_msg = ResponseProtocol.response_chat(
+            username='System Admin', 
+            msg='There are some problems in our servers, please wait...\n',
+            send_time=get_current_time()
+        )
+        for u_name, info in self.clients.items():
+            info['soc'].send_data(error_msg)
+           
 
 if __name__ == '__main__':
     Server().startup()

@@ -18,9 +18,11 @@ class Coordinator:
         self.coor_socket = CoorSocket()
 
         pool = redis.ConnectionPool(host=REDIS_HOST, port=REDIS_PORT)
-        self.publisher = redis.Redis(connection_pool=pool)
-        self.subscriber = self.publisher.pubsub()
-        self.subscriber.subscribe([ALIVE_CHANNEL])
+        self.redis = redis.Redis(connection_pool=pool)
+        self.pubsub = self.redis.pubsub()
+        self.pubsub.subscribe([ALIVE_CHANNEL])
+
+        self.working_redis = True #is connected to redis
 
     def startup(self):
         try:
@@ -77,6 +79,9 @@ class Coordinator:
         """
         return ip of the server that has the least clients
         """
+        if len(self.beat_dict) == 0:
+            return 'no available chat server'
+
         if invalid_ip != '' and invalid_ip in self.beat_dict:
             """
             remove the invalid chat server ip immediately if the client asks for reconnection 
@@ -91,23 +96,50 @@ class Coordinator:
         """
         update the last-checked time and client number of received ips
         """
-        for item in self.subscriber.listen():
-            if type(item['data']) == int:
-                continue
-            else:
-                data_json = str(item["data"], encoding='utf-8')
-                data = json.loads(data_json)
-                server_ip = data['ip']
-                clients = data['clients']
-                self.beat_dict[server_ip] = {
-                    'checked': time(), 'clients': clients}
+        while True:
+            try:
+                for item in self.pubsub.listen():
+                    if type(item['data']) == int:
+                        continue
+                    else:
+                        data_json = str(item["data"], encoding='utf-8')
+                        data = json.loads(data_json)
+                        print('heartbeat', data)
+                        server_ip = data['ip']
+                        clients = data['clients']
+                        self.beat_dict[server_ip] = {
+                            'checked': time(), 'clients': clients}
+            except redis.ConnectionError:
+                print('no response from redis server')
+                self.working_redis = False
+                 # try to resubcribe the channel after reconnection
+                while True:
+                    try:
+                        self.redis.ping()
+                    except redis.ConnectionError:
+                        print('not yet...')
+                        sleep(RECONNECT_REDIS_WAIT)
+                    else:
+                        #self.redis = redis.Redis(connection_pool=self.pool,socket_keepalive=True)
+                        self.pubsub = self.redis.pubsub()
+                        self.pubsub.subscribe([ALIVE_CHANNEL])
+                        self.working_redis = True
+                        print('resubscribe...')
+                        print('channels', self.redis.pubsub_channels())
+                        break
+           
 
     def remove_silent_servers(self):
         """
         remove invalid servers and sort the remaining servers based on their clients
         """
-        print('start to remove...')
         while True:
+            #don't remove anything if no redis connection
+            if self.working_redis is False:
+                sleep(RECONNECT_REDIS_WAIT)
+                continue
+
+            print('start to remove...')
             when = time() - CHECK_WAIT
             copy = self.beat_dict.copy()
             for ip in copy.keys():
@@ -118,7 +150,7 @@ class Coordinator:
             
             # sort dict by the number of clients
             self.beat_dict = dict(sorted(self.beat_dict.items(), key=lambda item: item[1]['clients']))
-            
+            print('dict', self.beat_dict)
             sleep(CHECK_WAIT)
 
 

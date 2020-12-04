@@ -6,6 +6,7 @@ CO_PORT = 8090
 REDIS_HOST = '192.168.1.164'
 REDIS_PORT = 6379
 ALIVE_CHANNEL = 'alive'
+RECONNECT_REDIS_WAIT = 3 #try to reconnect to redis every 3 s
 
 CHECK_WAIT = 10
 

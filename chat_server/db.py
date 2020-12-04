@@ -1,5 +1,6 @@
-from pymysql import connect
+from pymysql import connect, err
 from config import *
+import time
 
 class DB(object):
     """
@@ -16,6 +17,15 @@ class DB(object):
         self.conn.close()
 
     def get_user(self, username, pwd):
+        while True:
+            try:
+                self.conn.ping(reconnect=True)
+            except (ConnectionRefusedError, err.OperationalError):
+                print('mysql error')
+                time.sleep(3)
+            else:
+                break
+
         self.cursor.execute("select * from user_info where user_name=%s and pwd=%s", (username, pwd))
         query_result = self.cursor.fetchone()
         if not query_result:

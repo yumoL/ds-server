@@ -21,3 +21,4 @@ REDIS_PORT = 6379
 CHANNEL = 'chat'
 ALIVE_CHANNEL = 'alive'
 WAIT = 3 #report aliveness condition every 3s
+RECONNECT_REDIS_WAIT = 3 #try to reconnect to redis every 3 s

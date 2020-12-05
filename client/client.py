@@ -148,6 +148,7 @@ class Client(object):
         msg = response_data['msg']
         send_time = response_data['send_time']
         self.window_chat.append_msg(sender, msg, send_time)
+        
 
     def response_chat_history_handler(self, response_data):
         history = response_data['msg_history']

@@ -60,7 +60,7 @@ class Persist():
         while True:
             length = self.ps.llen(MSG_LIST)
             if length < 2:
-                sleep(30)
+                sleep(120)
                 continue
 
             while True:

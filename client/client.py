@@ -6,6 +6,8 @@ from window_login import WindowLogin
 from tkinter.messagebox import showinfo
 from window_chat import WindowChat
 import sys
+import ast
+import json
 
 
 class Client(object):
@@ -29,6 +31,7 @@ class Client(object):
         self.response_handler_functions = {}
         self.register(RESPONSE_LOGIN, self.response_login_handler)
         self.register(RESPONSE_CHAT, self.response_chat_handler)
+        self.register(RESPONSE_CHAT_HISTORY, self.response_chat_history_handler)
 
         #logged in user
         self.username = None
@@ -110,7 +113,7 @@ class Client(object):
 
                 #re-login to new server
                 relogin_request_text = RequestProtocol.request_login(
-                    self.username, self.pwd)
+                    self.username, self.pwd, relogin=True)
                 self.conn.send_data(relogin_request_text)
                 response_data = self.conn.recv_data()
 
@@ -145,6 +148,16 @@ class Client(object):
         msg = response_data['msg']
         send_time = response_data['send_time']
         self.window_chat.append_msg(sender, msg, send_time)
+
+    def response_chat_history_handler(self, response_data):
+        history = response_data['msg_history']
+        for data in ast.literal_eval(history):
+            sender = data['username']
+            msg = data['msg']
+            send_time = data['send_time']
+            self.window_chat.append_msg(sender, msg, send_time)
+
+
 
     def exit(self):
         """

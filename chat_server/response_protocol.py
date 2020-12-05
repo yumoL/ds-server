@@ -15,4 +15,9 @@ class ResponseProtocol(object):
         data = {'type': RESPONSE_CHAT, 'username': username, 'msg': msg, 'send_time': send_time}
         return json.dumps(data)
 
+    @staticmethod
+    def response_chat_history(chat_history):
+        data = {'type': RESPONSE_CHAT_HISTORY, 'msg_history': chat_history}
+        return json.dumps(data)
+
    

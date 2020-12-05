@@ -6,8 +6,8 @@ class RequestProtocol(object):
     """format response"""
 
     @staticmethod
-    def request_login(username, pwd):
-        data = {'type': REQUEST_LOGIN, 'username': username, 'pwd': pwd}
+    def request_login(username, pwd, relogin=False):
+        data = {'type': REQUEST_LOGIN, 'username': username, 'pwd': pwd, 'relogin': relogin}
         return json.dumps(data)
 
     @staticmethod

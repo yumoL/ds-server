@@ -1,6 +1,7 @@
 import socket
 from config import *
 import json
+import ast
 
 class ClientSocket(socket.socket):
 

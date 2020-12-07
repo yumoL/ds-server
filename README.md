@@ -72,7 +72,7 @@ select*from chat_logs_info;
 - First start the coordinator
 - Then the dumper script (redis_to_db/redis_to_db.py) and backup script (redis_to_db/backup.py)
 - Start chat servers (chat_server/server.py)
-- Start (multiple) client application(s) (client/client.py)
+- Start client application(s) (client/client.py)
 
 
 

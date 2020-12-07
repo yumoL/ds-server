@@ -59,7 +59,7 @@ select*from chat_logs_info;
 
 - Remember to change the configuration of Redis and Mysql in chat_server/config.py and redis_to_db/config.py
 
-#### Deploy chat_servers
+#### Deploy chat_servers to another two virtual machines
 - Run `scp -r chat_server/ your_virtual_mahcine_ip:your_home_dir/`
 - Install python3 -pip and necessary python packages `pip3 install redis pymysql`
 - Remember to change the ip address of socket in chat_server/config.py
@@ -72,7 +72,8 @@ select*from chat_logs_info;
 - First start the coordinator
 - Then the dumper script (redis_to_db/redis_to_db.py) and backup script (redis_to_db/backup.py)
 - Start chat servers (chat_server/server.py)
-- Start client application(s) (client/client.py)
+- Start client application(s) (client/client.py). Use inserted user information to login (for example, test1 as username and 111 as password)
+- Logs will be saved in each node locally.
 
 
 

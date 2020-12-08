@@ -46,6 +46,7 @@ class Log:
     def log_c_and_f(self, level, msg):
         self.write_log('f', level, msg)
         self.write_log('c', level, msg)
+        
 # some examples of an instance using the class
 # logcase = Log('test.log')
 # logcase.write_log('f','WARN','Today is gonna be a bad day!')

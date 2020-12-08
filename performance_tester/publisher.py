@@ -26,7 +26,7 @@ class Publisher(object):
         for i in range(self.msg_num):
             msg_bytes = os.urandom(100)
             self.redis.publish(CHANNEL, b64encode(msg_bytes).decode('utf-8'))
-            time.sleep(0.02)
+            time.sleep(0.02) #sleep 0.02s to avoid package loss because of the full socket buffer
             print(i)
         self.redis.publish(CHANNEL, 'finish')
         print('publish finished')

@@ -8,7 +8,7 @@ import socket
 
 class FakeServer(object):
     """
-    publish to redis for performance evaluation
+    a single server thta subscribes to redis channel and rdirect messages to multiple clients
     """
 
     def __init__(self):
@@ -50,9 +50,6 @@ class FakeServer(object):
             print(len(self.client_socs))
             
             
-
-
-
 
 if __name__ == "__main__":
     fs = FakeServer()

@@ -10,7 +10,7 @@ class ClientSocket(socket.socket):
 
     def connect(self, server_ip, server_port=SERVER_PORT):
         """
-        connect server
+        connect to server
         """
         super(ClientSocket, self).connect((server_ip, server_port))
 

@@ -1,6 +1,8 @@
 """
 calculate the average of a file
 """
+
+#filename needs to be changed manually
 filename = '1000_1000.txt'
 
 total = 0

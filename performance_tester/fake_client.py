@@ -6,7 +6,7 @@ class FakeClient(object):
 
     def __init__(self, client_num, msg_num):
         """
-        spawn multiple clients that connect to the same server
+        spawn multiple clients that connect to the same server and receive messages
         client_num: client number
         msg_num: message number
         """
@@ -17,6 +17,9 @@ class FakeClient(object):
         self.msg_num = msg_num
 
     def append_to_time(self, time_value):
+        """
+        add the time taken to receive [msg_num] messages to time_sep list
+        """
         while self.lock.locked():
             continue
             
@@ -25,6 +28,10 @@ class FakeClient(object):
         self.lock.release()
 
     def fake_client(self):
+        """
+        single client to receivce messages
+        """
+
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.connect(('127.0.0.1', 8070))
         client_socket.send('I am here'.encode('utf-8'))
@@ -51,11 +58,12 @@ class FakeClient(object):
             client_thread.start()
         [thread.join() for thread in threads]
 
+        # save list data to a file for further calculation
         with open(f'{self.client_num}_{self.msg_num}.txt', "a+") as file:
             file.write('\n'.join([str(content) for content in self.time_sep]))
             file.close()
         
 
 if __name__ == "__main__":
-    fc = FakeClient(100, 10000)
+    fc = FakeClient(100, 10000) #message number should be the same as set in publisher.py
     fc.start()

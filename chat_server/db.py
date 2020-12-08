@@ -4,10 +4,13 @@ import time
 
 class DB(object):
     """
-    maintain db
+    get data from db
     """
 
     def __init__(self):
+        """
+        connect to db
+        """
         self.conn = connect(host=DB_HOST, database=DB_NAME, port=DB_PORT,user=DB_USER,password=DB_PWD)
         print('database connection', self.conn.open)
         self.cursor = self.conn.cursor()
@@ -17,6 +20,9 @@ class DB(object):
         self.conn.close()
 
     def get_user(self, username, pwd):
+        """
+        get user info
+        """
         while True:
             try:
                 self.conn.ping(reconnect=True)
@@ -39,8 +45,3 @@ class DB(object):
         
         return user
 
-# if __name__ == '__main__':
-#     db = DB()
-#     data = db.get_user("test1", "111")
-#     print(data)
-#     db.close()

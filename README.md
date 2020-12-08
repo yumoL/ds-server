@@ -7,9 +7,9 @@ Host machine: Ubuntu 18.04
 3 virtual machines: Ubuntu 20.04
 
 ### Installation
-#### Install Redis
-- Before installing Redis server on a virtual machine, please make sure that the host machine could communicate with the virtual machine (for example host can ping virtual machine).
+please make sure that the host machine could communicate with your virtual machines (for example host can ping virtual machines).
 
+#### Install Redis
 - Install Redis server on virtual machine.
 
 - Open port 6379 for outside access to redis server.
@@ -66,7 +66,6 @@ select*from chat_logs_info;
 
 ### Synchronize NTP time of virtual machines to the host machine
 - Follow the [instruction](https://linuxconfig.org/ubuntu-20-04-ntp-server).
-
 
 ### Running the application
 - First start the coordinator

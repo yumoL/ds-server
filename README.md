@@ -74,6 +74,9 @@ select*from chat_logs_info;
 - Start client application(s) (client/client.py). Use inserted user information to login (for example, test1 as username and 111 as password)
 - Logs will be saved in each node locally.
 
+### Project report
+Please check [here](https://github.com/yumoL/ds-server/blob/master/report.pdf)
+
 
 
 

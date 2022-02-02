@@ -1,5 +1,7 @@
 # Distributed chatroom
-A course project of Distributed System
+A course project of Distributed System course of the University of Helsinki.
+
+This project serves as a chatroom application, where multiple clients can send messages to each other in a chatroom. The chatroom service is deployed to multiple servers that communicate with each other through Redis using publisher/subcriber mechanism. In this way, clients that connect to different servers can still see each other's messages in almost real-time. For more details, please check our project report below. 
 
 ### Project report
 Please check [here](https://github.com/yumoL/ds-server/blob/master/report.pdf)
